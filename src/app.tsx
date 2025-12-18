@@ -1,10 +1,11 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: it's alright */
-import { useEffect, useState, useRef, useCallback, use } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAgent } from "agents/react";
 import { isToolUIPart } from "ai";
 import { useAgentChat } from "agents/ai-react";
 import type { UIMessage } from "@ai-sdk/react";
 import type { tools } from "./tools";
+import type { AvatarProfile, MemoryItem } from "./server";
 
 // Component imports
 import { Button } from "@/components/button/Button";
@@ -23,31 +24,45 @@ import {
   Sun,
   Trash,
   PaperPlaneTilt,
-  Stop
+  Stop,
+  UserCircle,
+  Brain,
+  Sparkle
 } from "@phosphor-icons/react";
 
 // List of tools that require human confirmation
-// NOTE: this should match the tools that don't have execute functions in tools.ts
 const toolsRequiringConfirmation: (keyof typeof tools)[] = [
   "getWeatherInformation"
 ];
 
+// Tone display configuration
+const toneConfig: Record<string, { label: string; color: string; emoji: string }> = {
+  casual: { label: "Casual", color: "text-green-500", emoji: "😊" },
+  professional: { label: "Professional", color: "text-blue-500", emoji: "💼" },
+  playful: { label: "Playful", color: "text-pink-500", emoji: "🎉" },
+  technical: { label: "Technical", color: "text-purple-500", emoji: "⚙️" }
+};
+
 export default function Chat() {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
-    // Check localStorage first, default to dark if not found
     const savedTheme = localStorage.getItem("theme");
     return (savedTheme as "dark" | "light") || "dark";
   });
   const [showDebug, setShowDebug] = useState(false);
   const [textareaHeight, setTextareaHeight] = useState("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Avatar state tracking from tool results
+  const [avatarState, setAvatarState] = useState<{
+    avatar?: AvatarProfile;
+    memories: MemoryItem[];
+  }>({ avatar: undefined, memories: [] });
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
-    // Apply theme class on mount and when theme changes
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.classList.remove("light");
@@ -55,12 +70,9 @@ export default function Chat() {
       document.documentElement.classList.remove("dark");
       document.documentElement.classList.add("light");
     }
-
-    // Save theme preference to localStorage
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Scroll to bottom on mount
   useEffect(() => {
     scrollToBottom();
   }, [scrollToBottom]);
@@ -91,7 +103,6 @@ export default function Chat() {
     const message = agentInput;
     setAgentInput("");
 
-    // Send message to agent
     await sendMessage(
       {
         role: "user",
@@ -114,7 +125,38 @@ export default function Chat() {
     agent
   });
 
-  // Scroll to bottom when messages change
+  // Extract avatar state from tool results in messages
+  useEffect(() => {
+    for (const message of agentMessages) {
+      if (message.role === "assistant" && message.parts) {
+        for (const part of message.parts) {
+          if (isToolUIPart(part) && part.output) {
+            try {
+              const output = typeof part.output === "string" 
+                ? JSON.parse(part.output) 
+                : part.output;
+              
+              if (output.avatar) {
+                setAvatarState(prev => ({
+                  ...prev,
+                  avatar: output.avatar
+                }));
+              }
+              if (output.recentMemories) {
+                setAvatarState(prev => ({
+                  ...prev,
+                  memories: output.recentMemories
+                }));
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    }
+  }, [agentMessages]);
+
   useEffect(() => {
     agentMessages.length > 0 && scrollToBottom();
   }, [agentMessages, scrollToBottom]);
@@ -124,7 +166,6 @@ export default function Chat() {
       (part) =>
         isToolUIPart(part) &&
         part.state === "input-available" &&
-        // Manual check inside the component
         toolsRequiringConfirmation.includes(
           part.type.replace("tool-", "") as keyof typeof tools
         )
@@ -135,11 +176,46 @@ export default function Chat() {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  // Get current tone config
+  const currentTone = avatarState.avatar?.tone || "casual";
+  const toneInfo = toneConfig[currentTone];
+
   return (
     <div className="h-[100vh] w-full p-4 flex justify-center items-center bg-fixed overflow-hidden">
-      <HasOpenAIKey />
       <div className="h-[calc(100vh-2rem)] w-full mx-auto max-w-lg flex flex-col shadow-xl rounded-md overflow-hidden relative border border-neutral-300 dark:border-neutral-800">
-        <div className="px-4 py-3 border-b border-neutral-300 dark:border-neutral-800 flex items-center gap-3 sticky top-0 z-10">
+        {/* Avatar Header */}
+        <div className="px-4 py-3 border-b border-neutral-300 dark:border-neutral-800 bg-gradient-to-r from-orange-500/10 to-purple-500/10">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-orange-400 to-purple-500">
+              <UserCircle size={24} className="text-white" weight="fill" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-base truncate">
+                  {avatarState.avatar?.displayName || "Percify Avatar"}
+                </h2>
+                <span className={`text-xs px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 ${toneInfo.color}`}>
+                  {toneInfo.emoji} {toneInfo.label}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {avatarState.avatar?.bio || "Your AI co-pilot that remembers you"}
+              </p>
+            </div>
+          </div>
+          {avatarState.avatar?.expertiseTags && avatarState.avatar.expertiseTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {avatarState.avatar.expertiseTags.slice(0, 4).map((tag, i) => (
+                <span key={i} className="text-xs px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Main Header with controls */}
+        <div className="px-4 py-2 border-b border-neutral-300 dark:border-neutral-800 flex items-center gap-3 sticky top-0 z-10 bg-neutral-50 dark:bg-neutral-900">
           <div className="flex items-center justify-center h-8 w-8">
             <svg
               width="28px"
@@ -159,7 +235,8 @@ export default function Chat() {
           </div>
 
           <div className="flex-1">
-            <h2 className="font-semibold text-base">AI Chat Agent</h2>
+            <h2 className="font-semibold text-sm">Percify Avatar Co-Pilot</h2>
+            <p className="text-xs text-muted-foreground">Powered by Cloudflare Workers AI</p>
           </div>
 
           <div className="flex items-center gap-2 mr-2">
@@ -193,29 +270,35 @@ export default function Chat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 max-h-[calc(100vh-10rem)]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 max-h-[calc(100vh-14rem)]">
           {agentMessages.length === 0 && (
             <div className="h-full flex items-center justify-center">
               <Card className="p-6 max-w-md mx-auto bg-neutral-100 dark:bg-neutral-900">
                 <div className="text-center space-y-4">
-                  <div className="bg-[#F48120]/10 text-[#F48120] rounded-full p-3 inline-flex">
-                    <Robot size={24} />
+                  <div className="bg-gradient-to-br from-orange-500/20 to-purple-500/20 text-[#F48120] rounded-full p-4 inline-flex">
+                    <Sparkle size={32} weight="fill" />
                   </div>
-                  <h3 className="font-semibold text-lg">Welcome to AI Chat</h3>
+                  <h3 className="font-semibold text-lg">Welcome to Percify Avatar Co-Pilot</h3>
                   <p className="text-muted-foreground text-sm">
-                    Start a conversation with your AI assistant. Try asking
-                    about:
+                    I'm your AI assistant that remembers your persona and preferences. Try:
                   </p>
                   <ul className="text-sm text-left space-y-2">
                     <li className="flex items-center gap-2">
-                      <span className="text-[#F48120]">•</span>
-                      <span>Weather information for any city</span>
+                      <UserCircle size={16} className="text-[#F48120]" />
+                      <span>"Set my avatar as a sarcastic devops engineer"</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-[#F48120]">•</span>
-                      <span>Local time in different locations</span>
+                      <Brain size={16} className="text-[#F48120]" />
+                      <span>"Remember that I prefer TypeScript"</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Robot size={16} className="text-[#F48120]" />
+                      <span>"Research Cloudflare Agents SDK for me"</span>
                     </li>
                   </ul>
+                  <p className="text-xs text-muted-foreground pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                    💡 This agent remembers your preferences and tasks as your Percify avatar.
+                  </p>
                 </div>
               </Card>
             </div>
@@ -411,78 +494,4 @@ export default function Chat() {
       </div>
     </div>
   );
-}
-
-const hasOpenAiKeyPromise = fetch("/check-open-ai-key").then((res) =>
-  res.json<{ success: boolean }>()
-);
-
-function HasOpenAIKey() {
-  const hasOpenAiKey = use(hasOpenAiKeyPromise);
-
-  if (!hasOpenAiKey.success) {
-    return (
-      <div className="fixed top-0 left-0 right-0 z-50 bg-red-500/10 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-red-200 dark:border-red-900 p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full">
-                <svg
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-labelledby="warningIcon"
-                >
-                  <title id="warningIcon">Warning Icon</title>
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">
-                  OpenAI API Key Not Configured
-                </h3>
-                <p className="text-neutral-600 dark:text-neutral-300 mb-1">
-                  Requests to the API, including from the frontend UI, will not
-                  work until an OpenAI API key is configured.
-                </p>
-                <p className="text-neutral-600 dark:text-neutral-300">
-                  Please configure an OpenAI API key by setting a{" "}
-                  <a
-                    href="https://developers.cloudflare.com/workers/configuration/secrets/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-red-600 dark:text-red-400"
-                  >
-                    secret
-                  </a>{" "}
-                  named{" "}
-                  <code className="bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 font-mono text-sm">
-                    OPENAI_API_KEY
-                  </code>
-                  . <br />
-                  You can also use a different model provider by following these{" "}
-                  <a
-                    href="https://github.com/cloudflare/agents-starter?tab=readme-ov-file#use-a-different-ai-model-provider"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-red-600 dark:text-red-400"
-                  >
-                    instructions.
-                  </a>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  return null;
 }

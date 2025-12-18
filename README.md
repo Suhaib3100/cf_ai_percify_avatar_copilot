@@ -1,238 +1,185 @@
-# 🤖 Chat Agent Starter Kit
+# 🤖 cf_ai_percify_avatar_copilot
 
-![npm i agents command](./npm-agents-banner.svg)
+![Cloudflare Agents](./npm-agents-banner.svg)
 
-<a href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agents-starter"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"/></a>
+**Cloudflare Agents-based AI avatar co-pilot that remembers a persona and multi-step tasks for each user.**
 
-A starter template for building AI-powered chat agents using Cloudflare's Agent platform, powered by [`agents`](https://www.npmjs.com/package/agents). This project provides a foundation for creating interactive chat experiences with AI, complete with a modern UI and tool integration capabilities.
+Built with the [Cloudflare Agents SDK](https://developers.cloudflare.com/agents/) and powered by **Workers AI** using the `@cf/meta/llama-3.3-70b-instruct-fp8-fast` model.
 
-## Features
+## ✨ Features
 
-- 💬 Interactive chat interface with AI
-- 🛠️ Built-in tool system with human-in-the-loop confirmation
-- 📅 Advanced task scheduling (one-time, delayed, and recurring via cron)
-- 🌓 Dark/Light theme support
-- ⚡️ Real-time streaming responses
-- 🔄 State management and chat history
-- 🎨 Modern, responsive UI
+- 💬 **Real-time Chat** - WebSocket-based chat using Cloudflare Agents Starter
+- 👤 **Persistent Avatar Profile** - Customize your AI persona with name, bio, tone, and expertise tags
+- 🧠 **Long-term Memory** - Store preferences, tasks, and notes that persist across sessions
+- 🔧 **Tool Integration** - Built-in tools for avatar management, memory storage, and web research
+- 🤖 **LLM Orchestration** - Multi-step task execution with Workers AI Llama 3.3 70B
+- 🌓 **Dark/Light Theme** - Toggle between themes with preference persistence
+- 📅 **Task Scheduling** - Schedule tasks for later execution (one-time, delayed, or cron)
 
-## Prerequisites
+## 🏗️ Architecture
 
-- Cloudflare account
-- OpenAI API key
-
-## Quick Start
-
-1. Create a new project:
-
-```bash
-npx create-cloudflare@latest --template cloudflare/agents-starter
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Cloudflare Workers                        │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌─────────────────────────────────┐ │
+│  │   React UI      │◄──►│  PercifyAvatarAgent             │ │
+│  │   (WebSocket)   │    │  (Durable Object)               │ │
+│  └─────────────────┘    │                                 │ │
+│                         │  • Avatar Profile State         │ │
+│                         │  • Memory Storage (50 items)    │ │
+│                         │  • Tool Execution               │ │
+│                         │  • LLM Orchestration            │ │
+│                         └─────────────┬───────────────────┘ │
+│                                       │                     │
+│                         ┌─────────────▼───────────────────┐ │
+│                         │   Workers AI                    │ │
+│                         │   @cf/meta/llama-3.3-70b-       │ │
+│                         │   instruct-fp8-fast             │ │
+│                         └─────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-2. Install dependencies:
+## 📋 Requirements
+
+- **Node.js** v18+ (v20+ recommended)
+- **Cloudflare Account** with Workers AI enabled
+- **Wrangler CLI** (included as dev dependency)
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-3. Set up your environment:
-
-Create a `.dev.vars` file:
-
-```env
-OPENAI_API_KEY=your_openai_api_key
-```
-
-4. Run locally:
+### 2. Run Locally
 
 ```bash
 npm start
 ```
 
-5. Deploy:
+This starts a local development server with hot reloading.
+
+### 3. Deploy to Cloudflare
 
 ```bash
 npm run deploy
 ```
 
-## Project Structure
+## 🎮 How to Use
+
+1. **Open the deployed URL** in your browser
+2. **Set up your avatar** by telling the agent:
+   - "Set my avatar as a sarcastic devops engineer"
+   - "Call me Alex and set my tone to professional"
+   - "My expertise is TypeScript, React, and Cloudflare Workers"
+
+3. **Store memories** for long-term preferences:
+   - "Remember that I prefer TypeScript over JavaScript"
+   - "Don't forget I'm working on a Cloudflare project"
+   - "Note: deadline for project is Friday"
+
+4. **Run research tasks**:
+   - "Research Cloudflare Agents SDK for me"
+   - "Look up information about Durable Objects"
+
+5. **Schedule tasks**:
+   - "Remind me to check the deployment in 1 hour"
+   - "Schedule a code review for tomorrow at 3pm"
+
+## 🛠️ Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `saveAvatarProfile` | Update avatar name, bio, tone, expertise tags |
+| `saveMemory` | Store preferences, tasks, or notes (max 50 items) |
+| `researchWeb` | Perform web research on Cloudflare docs |
+| `getAvatarState` | Retrieve current avatar and recent memories |
+| `scheduleTask` | Schedule tasks for later execution |
+| `getScheduledTasks` | List all scheduled tasks |
+| `cancelScheduledTask` | Cancel a scheduled task |
+
+## 📁 Project Structure
 
 ```
 ├── src/
-│   ├── app.tsx        # Chat UI implementation
-│   ├── server.ts      # Chat agent logic
-│   ├── tools.ts       # Tool definitions
+│   ├── app.tsx        # React chat UI with avatar header
+│   ├── server.ts      # PercifyAvatarAgent implementation
+│   ├── tools.ts       # Tool definitions (avatar, memory, research)
 │   ├── utils.ts       # Helper functions
 │   └── styles.css     # UI styling
+├── wrangler.jsonc     # Cloudflare configuration
+├── PROMPTS.md         # AI prompts documentation
+└── README.md          # This file
 ```
 
-## Customization Guide
+## ⚙️ Configuration
 
-### Adding New Tools
+### wrangler.jsonc
 
-Add new tools in `tools.ts` using the tool builder:
+The project is configured with:
+- **Workers AI** binding for LLM inference
+- **Durable Objects** for persistent state
+- **SQLite** storage for chat history and agent state
 
-```ts
-// Example of a tool that requires confirmation
-const searchDatabase = tool({
-  description: "Search the database for user records",
-  parameters: z.object({
-    query: z.string(),
-    limit: z.number().optional()
-  })
-  // No execute function = requires confirmation
-});
+### Environment Variables
 
-// Example of an auto-executing tool
-const getCurrentTime = tool({
-  description: "Get current server time",
-  parameters: z.object({}),
-  execute: async () => new Date().toISOString()
-});
+No environment variables required! The project uses Workers AI which is automatically available in Cloudflare Workers.
 
-// Scheduling tool implementation
-const scheduleTask = tool({
-  description:
-    "schedule a task to be executed at a later time. 'when' can be a date, a delay in seconds, or a cron pattern.",
-  parameters: z.object({
-    type: z.enum(["scheduled", "delayed", "cron"]),
-    when: z.union([z.number(), z.string()]),
-    payload: z.string()
-  }),
-  execute: async ({ type, when, payload }) => {
-    // ... see the implementation in tools.ts
-  }
-});
-```
+## 📝 Assignment Notes
 
-To handle tool confirmations, add execution functions to the `executions` object:
+This project satisfies the Cloudflare assignment requirements:
 
-```typescript
-export const executions = {
-  searchDatabase: async ({
-    query,
-    limit
-  }: {
-    query: string;
-    limit?: number;
-  }) => {
-    // Implementation for when the tool is confirmed
-    const results = await db.search(query, limit);
-    return results;
-  }
-  // Add more execution handlers for other tools that require confirmation
-};
-```
+### ✅ LLM Usage
+- Uses **Workers AI** with `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
+- System prompts configured for avatar persona behavior
+- Multi-step reasoning with tool calling
 
-Tools can be configured in two ways:
+### ✅ Workflow/Coordination
+- Tools for avatar profile management (`saveAvatarProfile`)
+- Memory storage with automatic cleanup (`saveMemory`)
+- Web research capability (`researchWeb`)
+- State management via Agents SDK `setState`
 
-1. With an `execute` function for automatic execution
-2. Without an `execute` function, requiring confirmation and using the `executions` object to handle the confirmed action. NOTE: The keys in `executions` should match `toolsRequiringConfirmation` in `app.tsx`.
+### ✅ User Input
+- Real-time WebSocket chat interface
+- Tool confirmation for certain operations
+- Streaming responses
 
-### Use a different AI model provider
+### ✅ Memory/State Storage
+- Avatar profile persisted in Durable Object state
+- Memory items stored with automatic 50-item cap
+- Chat history preserved across sessions
+- Task scheduling with Durable Object schedules
 
-The starting [`server.ts`](https://github.com/cloudflare/agents-starter/blob/main/src/server.ts) implementation uses the [`ai-sdk`](https://sdk.vercel.ai/docs/introduction) and the [OpenAI provider](https://sdk.vercel.ai/providers/ai-sdk-providers/openai), but you can use any AI model provider by:
+## 🧪 Manual Test Plan
 
-1. Installing an alternative AI provider for the `ai-sdk`, such as the [`workers-ai-provider`](https://sdk.vercel.ai/providers/community-providers/cloudflare-workers-ai) or [`anthropic`](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic) provider:
-2. Replacing the AI SDK with the [OpenAI SDK](https://github.com/openai/openai-node)
-3. Using the Cloudflare [Workers AI + AI Gateway](https://developers.cloudflare.com/ai-gateway/providers/workersai/#workers-binding) binding API directly
+1. **First run**: Set avatar with "Set my avatar as a friendly developer named Alex"
+   - Verify avatar header updates with name and tone
 
-For example, to use the [`workers-ai-provider`](https://sdk.vercel.ai/providers/community-providers/cloudflare-workers-ai), install the package:
+2. **Memory test**: Add 3-4 memories
+   - "Remember I prefer dark mode"
+   - "Note that I'm working on an AI project"
+   - Refresh page, verify memories are used in context
 
-```sh
-npm install workers-ai-provider
-```
+3. **Research test**: "Research Cloudflare Agents SDK"
+   - Verify research snippet appears in response
 
-Add an `ai` binding to `wrangler.jsonc`:
+4. **Tone test**: "Change my tone to professional"
+   - Verify subsequent responses use professional tone
 
-```jsonc
-// rest of file
-  "ai": {
-    "binding": "AI"
-  }
-// rest of file
-```
+## 📚 Documentation
 
-Replace the `@ai-sdk/openai` import and usage with the `workers-ai-provider`:
+- [PROMPTS.md](./PROMPTS.md) - AI prompts and system instructions
+- [Cloudflare Agents SDK](https://developers.cloudflare.com/agents/)
+- [Workers AI Models](https://developers.cloudflare.com/workers-ai/models/)
 
-```diff
-// server.ts
-// Change the imports
-- import { openai } from "@ai-sdk/openai";
-+ import { createWorkersAI } from 'workers-ai-provider';
+## 📄 License
 
-// Create a Workers AI instance
-+ const workersai = createWorkersAI({ binding: env.AI });
+MIT License - see [LICENSE](./LICENSE) for details.
 
-// Use it when calling the streamText method (or other methods)
-// from the ai-sdk
-- const model = openai("gpt-4o-2024-11-20");
-+ const model = workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b")
-```
+---
 
-Commit your changes and then run the `agents-starter` as per the rest of this README.
-
-### Modifying the UI
-
-The chat interface is built with React and can be customized in `app.tsx`:
-
-- Modify the theme colors in `styles.css`
-- Add new UI components in the chat container
-- Customize message rendering and tool confirmation dialogs
-- Add new controls to the header
-
-### Example Use Cases
-
-1. **Customer Support Agent**
-   - Add tools for:
-     - Ticket creation/lookup
-     - Order status checking
-     - Product recommendations
-     - FAQ database search
-
-2. **Development Assistant**
-   - Integrate tools for:
-     - Code linting
-     - Git operations
-     - Documentation search
-     - Dependency checking
-
-3. **Data Analysis Assistant**
-   - Build tools for:
-     - Database querying
-     - Data visualization
-     - Statistical analysis
-     - Report generation
-
-4. **Personal Productivity Assistant**
-   - Implement tools for:
-     - Task scheduling with flexible timing options
-     - One-time, delayed, and recurring task management
-     - Task tracking with reminders
-     - Email drafting
-     - Note taking
-
-5. **Scheduling Assistant**
-   - Build tools for:
-     - One-time event scheduling using specific dates
-     - Delayed task execution (e.g., "remind me in 30 minutes")
-     - Recurring tasks using cron patterns
-     - Task payload management
-     - Flexible scheduling patterns
-
-Each use case can be implemented by:
-
-1. Adding relevant tools in `tools.ts`
-2. Customizing the UI for specific interactions
-3. Extending the agent's capabilities in `server.ts`
-4. Adding any necessary external API integrations
-
-## Learn More
-
-- [`agents`](https://github.com/cloudflare/agents/blob/main/packages/agents/README.md)
-- [Cloudflare Agents Documentation](https://developers.cloudflare.com/agents/)
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-
-## License
-
-MIT
+Built with ❤️ using Cloudflare Agents SDK

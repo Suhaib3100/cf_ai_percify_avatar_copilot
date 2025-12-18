@@ -1,7 +1,7 @@
 {
-  "name": "cloudflare-agent-starter",
+  "name": "cf_ai_percify_avatar_copilot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Cloudflare Agents-based AI avatar co-pilot that remembers a persona and multi-step tasks for each user",
   "type": "module",
   "private": true,
   "scripts": {
@@ -17,7 +17,11 @@
   "keywords": [
     "cloudflare",
     "ai",
-    "agents"
+    "agents",
+    "avatar",
+    "copilot",
+    "llama",
+    "workers-ai"
   ],
   "author": "",
   "license": "MIT",

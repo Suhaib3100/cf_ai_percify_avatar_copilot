@@ -48,17 +48,6 @@ export type AgentState = {
   memories: MemoryItem[];
 };
 
-/**
- * LLM orchestration response structure
- */
-type OrchestrationResponse = {
-  action: "chat" | "update_avatar" | "store_memory" | "research" | "combo";
-  avatarUpdate?: Partial<AvatarProfile>;
-  memory?: { type: MemoryItem["type"]; content: string };
-  researchQuery?: string;
-  finalAnswerPlan: string;
-};
-
 // ============================================================================
 // PERCIFY AVATAR AGENT IMPLEMENTATION
 // ============================================================================
@@ -285,6 +274,7 @@ ${this.buildContextString()}`;
   ) {
     // Initialize Workers AI with Llama 3.3 70B
     const workersAI = createWorkersAI({ binding: this.env.AI });
+    // @ts-expect-error - Model name is valid but not in type definitions yet
     const model = workersAI("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
 
     // Collect all tools including MCP tools
