@@ -1,185 +1,224 @@
-# 🤖 cf_ai_percify_avatar_copilot
+# 🎭 Percify Avatar Co-Pilot
 
-![Cloudflare Agents](./npm-agents-banner.svg)
+> Your AI assistant that remembers who you are.
 
-**Cloudflare Agents-based AI avatar co-pilot that remembers a persona and multi-step tasks for each user.**
+![Percify Chat Interface](./public/screenshot01.png)
 
-Built with the [Cloudflare Agents SDK](https://developers.cloudflare.com/agents/) and powered by **Workers AI** using the `@cf/meta/llama-3.3-70b-instruct-fp8-fast` model.
+**Percify Avatar Co-Pilot** is an AI-powered assistant built on Cloudflare's edge network that maintains a persistent persona for each user. It remembers your preferences, stores your notes, and adapts to your communication style.
+
+🚀 **Live Demo**: [cf-ai-percify-avatar-copilot.suhaibking310-47d.workers.dev](https://cf-ai-percify-avatar-copilot.suhaibking310-47d.workers.dev/)
+
+🌐 **Documentation**: [docs.percify.io](https://docs.percify.io)
+
+---
 
 ## ✨ Features
 
-- 💬 **Real-time Chat** - WebSocket-based chat using Cloudflare Agents Starter
-- 👤 **Persistent Avatar Profile** - Customize your AI persona with name, bio, tone, and expertise tags
-- 🧠 **Long-term Memory** - Store preferences, tasks, and notes that persist across sessions
-- 🔧 **Tool Integration** - Built-in tools for avatar management, memory storage, and web research
-- 🤖 **LLM Orchestration** - Multi-step task execution with Workers AI Llama 3.3 70B
-- 🌓 **Dark/Light Theme** - Toggle between themes with preference persistence
-- 📅 **Task Scheduling** - Schedule tasks for later execution (one-time, delayed, or cron)
+| Feature | Description |
+|---------|-------------|
+| 🎭 **Persistent Avatar** | Create your AI persona with custom name, bio, tone & expertise |
+| 🧠 **Memory Storage** | Save preferences, tasks, and notes that persist across sessions |
+| 📚 **Documentation Search** | Query docs.percify.io for help and guides |
+| 🎨 **4 Tone Styles** | Casual, Professional, Playful, or Technical |
+| ⚡ **Edge-Powered** | Runs on Cloudflare Workers for global low-latency |
+| 📅 **Task Scheduling** | Schedule reminders and recurring tasks |
 
-## 🏗️ Architecture
+---
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Cloudflare Workers                        │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐    ┌─────────────────────────────────┐ │
-│  │   React UI      │◄──►│  PercifyAvatarAgent             │ │
-│  │   (WebSocket)   │    │  (Durable Object)               │ │
-│  └─────────────────┘    │                                 │ │
-│                         │  • Avatar Profile State         │ │
-│                         │  • Memory Storage (50 items)    │ │
-│                         │  • Tool Execution               │ │
-│                         │  • LLM Orchestration            │ │
-│                         └─────────────┬───────────────────┘ │
-│                                       │                     │
-│                         ┌─────────────▼───────────────────┐ │
-│                         │   Workers AI                    │ │
-│                         │   @cf/meta/llama-3.3-70b-       │ │
-│                         │   instruct-fp8-fast             │ │
-│                         └─────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+## 📸 Screenshots
 
-## 📋 Requirements
+### Chat Interface
+![Percify Chat](./public/screenshot01.png)
 
-- **Node.js** v18+ (v20+ recommended)
-- **Cloudflare Account** with Workers AI enabled
-- **Wrangler CLI** (included as dev dependency)
+### Avatar & Memory in Action
+![Docs Ai copliot](./public/screenshot02.png)
+
+---
 
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
-
 ```bash
 npm install
 ```
 
 ### 2. Run Locally
-
 ```bash
 npm start
 ```
-
-This starts a local development server with hot reloading.
+Opens at `http://localhost:5173`
 
 ### 3. Deploy to Cloudflare
-
 ```bash
 npm run deploy
 ```
 
-## 🎮 How to Use
+---
 
-1. **Open the deployed URL** in your browser
-2. **Set up your avatar** by telling the agent:
-   - "Set my avatar as a sarcastic devops engineer"
-   - "Call me Alex and set my tone to professional"
-   - "My expertise is TypeScript, React, and Cloudflare Workers"
+## 🎮 Usage Examples
 
-3. **Store memories** for long-term preferences:
-   - "Remember that I prefer TypeScript over JavaScript"
-   - "Don't forget I'm working on a Cloudflare project"
-   - "Note: deadline for project is Friday"
+### Create Your Avatar
+```
+"Set my avatar as Alex, a senior developer who loves TypeScript"
+"Change my tone to professional"
+"My expertise is React, Node.js, and DevOps"
+```
 
-4. **Run research tasks**:
-   - "Research Cloudflare Agents SDK for me"
-   - "Look up information about Durable Objects"
+### Store Memories
+```
+"Remember that I prefer dark mode"
+"Note: project deadline is Friday"
+"Don't forget I'm working on the Percify project"
+```
 
-5. **Schedule tasks**:
-   - "Remind me to check the deployment in 1 hour"
-   - "Schedule a code review for tomorrow at 3pm"
+### Search Documentation
+```
+"What is Percify?"
+"How do memories work?"
+"What tones are available?"
+"How do I schedule tasks?"
+```
+
+### Schedule Tasks
+```
+"Remind me in 1 hour to check deployment"
+"Schedule daily standup at 9am"
+```
+
+---
 
 ## 🛠️ Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `saveAvatarProfile` | Update avatar name, bio, tone, expertise tags |
+| `saveAvatarProfile` | Create/update your avatar (name, bio, tone, expertise) |
 | `saveMemory` | Store preferences, tasks, or notes (max 50 items) |
-| `researchWeb` | Perform web research on Cloudflare docs |
-| `getAvatarState` | Retrieve current avatar and recent memories |
-| `scheduleTask` | Schedule tasks for later execution |
+| `researchWeb` | Search docs.percify.io documentation |
+| `getAvatarState` | View current avatar and recent memories |
+| `scheduleTask` | Schedule tasks for later |
 | `getScheduledTasks` | List all scheduled tasks |
 | `cancelScheduledTask` | Cancel a scheduled task |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                     Cloudflare Edge Network                     │
+├────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   ┌──────────────┐         ┌─────────────────────────────────┐ │
+│   │   React UI   │◄─WSS──►│     PercifyAvatarAgent          │ │
+│   │   (Vite)     │         │     (Durable Object)            │ │
+│   └──────────────┘         │                                 │ │
+│                            │  ┌─────────────────────────────┐│ │
+│                            │  │ Avatar Profile              ││ │
+│                            │  │ • displayName, bio          ││ │
+│                            │  │ • tone, expertiseTags       ││ │
+│                            │  └─────────────────────────────┘│ │
+│                            │  ┌─────────────────────────────┐│ │
+│                            │  │ Memory Storage (50 max)     ││ │
+│                            │  │ • tasks, preferences, notes ││ │
+│                            │  └─────────────────────────────┘│ │
+│                            │  ┌─────────────────────────────┐│ │
+│                            │  │ docs.percify.io Search      ││ │
+│                            │  │ • 10 documentation topics   ││ │
+│                            │  └─────────────────────────────┘│ │
+│                            └─────────────┬───────────────────┘ │
+│                                          │                     │
+│                            ┌─────────────▼───────────────────┐ │
+│                            │        Workers AI               │ │
+│                            │  @cf/meta/llama-3.3-70b-        │ │
+│                            │  instruct-fp8-fast              │ │
+│                            └─────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## 📁 Project Structure
 
 ```
+├── public/
+│   ├── screenshot01.png    # Chat interface screenshot
+│   └── screenshot02.png    # Avatar demo screenshot
 ├── src/
-│   ├── app.tsx        # React chat UI with avatar header
-│   ├── server.ts      # PercifyAvatarAgent implementation
-│   ├── tools.ts       # Tool definitions (avatar, memory, research)
-│   ├── utils.ts       # Helper functions
-│   └── styles.css     # UI styling
-├── wrangler.jsonc     # Cloudflare configuration
-├── PROMPTS.md         # AI prompts documentation
-└── README.md          # This file
+│   ├── app.tsx             # React chat UI with avatar header
+│   ├── server.ts           # PercifyAvatarAgent (Durable Object)
+│   ├── tools.ts            # Tool definitions
+│   ├── client.tsx          # React entry point
+│   └── styles.css          # UI styling
+├── wrangler.jsonc          # Cloudflare Workers config
+├── PROMPTS.md              # AI prompts documentation
+└── README.md               # This file
 ```
-
-## ⚙️ Configuration
-
-### wrangler.jsonc
-
-The project is configured with:
-- **Workers AI** binding for LLM inference
-- **Durable Objects** for persistent state
-- **SQLite** storage for chat history and agent state
-
-### Environment Variables
-
-No environment variables required! The project uses Workers AI which is automatically available in Cloudflare Workers.
-
-## 📝 Assignment Notes
-
-This project satisfies the Cloudflare assignment requirements:
-
-### ✅ LLM Usage
-- Uses **Workers AI** with `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
-- System prompts configured for avatar persona behavior
-- Multi-step reasoning with tool calling
-
-### ✅ Workflow/Coordination
-- Tools for avatar profile management (`saveAvatarProfile`)
-- Memory storage with automatic cleanup (`saveMemory`)
-- Web research capability (`researchWeb`)
-- State management via Agents SDK `setState`
-
-### ✅ User Input
-- Real-time WebSocket chat interface
-- Tool confirmation for certain operations
-- Streaming responses
-
-### ✅ Memory/State Storage
-- Avatar profile persisted in Durable Object state
-- Memory items stored with automatic 50-item cap
-- Chat history preserved across sessions
-- Task scheduling with Durable Object schedules
-
-## 🧪 Manual Test Plan
-
-1. **First run**: Set avatar with "Set my avatar as a friendly developer named Alex"
-   - Verify avatar header updates with name and tone
-
-2. **Memory test**: Add 3-4 memories
-   - "Remember I prefer dark mode"
-   - "Note that I'm working on an AI project"
-   - Refresh page, verify memories are used in context
-
-3. **Research test**: "Research Cloudflare Agents SDK"
-   - Verify research snippet appears in response
-
-4. **Tone test**: "Change my tone to professional"
-   - Verify subsequent responses use professional tone
-
-## 📚 Documentation
-
-- [PROMPTS.md](./PROMPTS.md) - AI prompts and system instructions
-- [Cloudflare Agents SDK](https://developers.cloudflare.com/agents/)
-- [Workers AI Models](https://developers.cloudflare.com/workers-ai/models/)
-
-## 📄 License
-
-MIT License - see [LICENSE](./LICENSE) for details.
 
 ---
 
-Built with ❤️ using Cloudflare Agents SDK
+## 📚 Documentation Topics
+
+The built-in docs.percify.io search covers:
+
+| Topic | Description |
+|-------|-------------|
+| Getting Started | First-time setup guide |
+| Avatar Guide | Creating and customizing your avatar |
+| Memory System | How memories work and limits |
+| Tone Customization | Available tone styles |
+| Expertise Tags | Adding your areas of expertise |
+| Tools Reference | All available commands |
+| Scheduling | Reminders and recurring tasks |
+| Architecture | Technical implementation details |
+| API Reference | REST and WebSocket endpoints |
+| Troubleshooting | Common issues and fixes |
+
+---
+
+## ⚙️ Tech Stack
+
+- **Runtime**: Cloudflare Workers
+- **State**: Durable Objects + SQLite
+- **AI Model**: Workers AI (Llama 3.3 70B)
+- **Frontend**: React + Vite
+- **Realtime**: WebSockets
+- **SDK**: Cloudflare Agents SDK
+
+---
+
+## 📋 Requirements
+
+- Node.js v18+ (v20 recommended)
+- Cloudflare account with Workers AI
+- npm or pnpm
+
+---
+
+## 🧪 Test Plan
+
+1. **Avatar Setup**: "Create my avatar as Alex with professional tone"
+   - ✓ Header shows name and tone badge
+
+2. **Memory Storage**: "Remember I prefer TypeScript"
+   - ✓ Memory saved, context updated
+
+3. **Documentation Search**: "What is Percify?"
+   - ✓ Returns docs.percify.io content
+
+4. **Tone Change**: "Change tone to playful"
+   - ✓ Responses adapt to new tone
+
+5. **Persistence**: Refresh page
+   - ✓ Avatar and memories restored
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE)
+
+---
+
+<p align="center">
+  Built with ❤️ on Cloudflare Workers
+</p>
