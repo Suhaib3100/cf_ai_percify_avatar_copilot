@@ -1,44 +1,188 @@
 /**
- * Tool definitions for the AI chat agent
- * Tools can either require human confirmation or execute automatically
+ * Tool definitions for the Percify Avatar Co-Pilot
+ * Includes avatar management, memory storage, and web research tools
  */
 import { tool, type ToolSet } from "ai";
 import { z } from "zod/v3";
 
-import type { Chat } from "./server";
+import type { PercifyAvatarAgent } from "./server";
 import { getCurrentAgent } from "agents";
 import { scheduleSchema } from "agents/schedule";
 
-/**
- * Weather information tool that requires human confirmation
- * When invoked, this will present a confirmation dialog to the user
- */
-const getWeatherInformation = tool({
-  description: "show the weather in a given city to the user",
-  inputSchema: z.object({ city: z.string() })
-  // Omitting execute function makes this tool require human confirmation
-});
+// ============================================================================
+// AVATAR PROFILE TOOL
+// ============================================================================
 
 /**
- * Local time tool that executes automatically
- * Since it includes an execute function, it will run without user confirmation
- * This is suitable for low-risk operations that don't need oversight
+ * Save or update the user's avatar profile
+ * Allows setting display name, bio, tone, and expertise tags
  */
-const getLocalTime = tool({
-  description: "get the local time for a specified location",
-  inputSchema: z.object({ location: z.string() }),
-  execute: async ({ location }) => {
-    console.log(`Getting local time for ${location}`);
-    return "10am";
+const saveAvatarProfile = tool({
+  description: `Update the user's avatar profile. Use this when the user wants to:
+    - Set or change their display name
+    - Update their bio/description
+    - Change their communication tone (casual, professional, playful, technical)
+    - Add or modify expertise tags
+    Example triggers: "Set my avatar as...", "Call me...", "I'm a...", "Change my tone to..."`,
+  inputSchema: z.object({
+    displayName: z.string().optional().describe("The avatar's display name"),
+    bio: z.string().optional().describe("A short bio or description for the avatar"),
+    tone: z.enum(["casual", "professional", "playful", "technical"]).optional()
+      .describe("The communication tone: casual, professional, playful, or technical"),
+    expertiseTags: z.array(z.string()).optional()
+      .describe("List of expertise areas or skills")
+  }),
+  execute: async ({ displayName, bio, tone, expertiseTags }) => {
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
+    
+    if (!agent) {
+      return { error: "Agent not available" };
+    }
+
+    try {
+      const updatedAvatar = agent.saveAvatarProfile({
+        displayName,
+        bio,
+        tone,
+        expertiseTags
+      });
+
+      return {
+        success: true,
+        message: `Avatar profile updated successfully!`,
+        avatar: updatedAvatar
+      };
+    } catch (error) {
+      console.error("Error saving avatar profile:", error);
+      return { error: `Failed to update avatar profile: ${error}` };
+    }
   }
 });
 
+// ============================================================================
+// MEMORY STORAGE TOOL
+// ============================================================================
+
+/**
+ * Store a memory item for long-term retention
+ * Supports tasks, preferences, and general notes
+ */
+const saveMemory = tool({
+  description: `Store information in the user's memory for future reference. Use this when:
+    - User asks to remember something: "Remember that I...", "Don't forget..."
+    - User shares a preference: "I prefer...", "I like..."
+    - User mentions an important task or project
+    Memory types: 'preference' for likes/dislikes, 'task' for work items, 'note' for general info`,
+  inputSchema: z.object({
+    type: z.enum(["task", "preference", "note"])
+      .describe("The type of memory: task, preference, or note"),
+    content: z.string()
+      .describe("The content to remember")
+  }),
+  execute: async ({ type, content }) => {
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
+    
+    if (!agent) {
+      return { error: "Agent not available" };
+    }
+
+    try {
+      const recentMemories = agent.saveMemory(type, content);
+
+      return {
+        success: true,
+        message: `Memory stored successfully! I'll remember: "${content}"`,
+        recentMemories
+      };
+    } catch (error) {
+      console.error("Error saving memory:", error);
+      return { error: `Failed to store memory: ${error}` };
+    }
+  }
+});
+
+// ============================================================================
+// WEB RESEARCH TOOL
+// ============================================================================
+
+/**
+ * Perform web research by fetching content from documentation sites
+ * Currently targets Cloudflare docs for the assignment
+ */
+const researchWeb = tool({
+  description: `Research information from the web. Use this when the user asks:
+    - "Research...", "Look up...", "Find information about..."
+    - Questions about Cloudflare, Workers, Agents SDK
+    - Any request for external information lookup`,
+  inputSchema: z.object({
+    query: z.string().describe("The research query or topic to look up")
+  }),
+  execute: async ({ query }) => {
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
+    
+    if (!agent) {
+      return { error: "Agent not available" };
+    }
+
+    try {
+      const result = await agent.researchWeb(query);
+
+      return {
+        success: true,
+        message: `Research completed for: "${query}"`,
+        ...result
+      };
+    } catch (error) {
+      console.error("Error performing research:", error);
+      return { error: `Failed to complete research: ${error}` };
+    }
+  }
+});
+
+// ============================================================================
+// GET AVATAR STATE TOOL
+// ============================================================================
+
+/**
+ * Retrieve the current avatar state including profile and memories
+ * Useful for the LLM to check current state before making decisions
+ */
+const getAvatarState = tool({
+  description: "Get the current avatar profile and recent memories",
+  inputSchema: z.object({}),
+  execute: async () => {
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
+    
+    if (!agent) {
+      return { error: "Agent not available" };
+    }
+
+    try {
+      const state = agent.getAvatarState();
+      return {
+        success: true,
+        avatar: state.avatar || null,
+        recentMemories: state.memories
+      };
+    } catch (error) {
+      console.error("Error getting avatar state:", error);
+      return { error: `Failed to get avatar state: ${error}` };
+    }
+  }
+});
+
+// ============================================================================
+// SCHEDULING TOOLS (from original starter)
+// ============================================================================
+
+/**
+ * Schedule a task to be executed at a later time
+ */
 const scheduleTask = tool({
   description: "A tool to schedule a task to be executed at a later time",
   inputSchema: scheduleSchema,
   execute: async ({ when, description }) => {
-    // we can now read the agent context from the ALS store
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
 
     function throwError(msg: string): string {
       throw new Error(msg);
@@ -48,11 +192,11 @@ const scheduleTask = tool({
     }
     const input =
       when.type === "scheduled"
-        ? when.date // scheduled
+        ? when.date
         : when.type === "delayed"
-          ? when.delayInSeconds // delayed
+          ? when.delayInSeconds
           : when.type === "cron"
-            ? when.cron // cron
+            ? when.cron
             : throwError("not a valid schedule input");
     try {
       agent!.schedule(input!, "executeTask", description);
@@ -65,14 +209,13 @@ const scheduleTask = tool({
 });
 
 /**
- * Tool to list all scheduled tasks
- * This executes automatically without requiring human confirmation
+ * List all scheduled tasks
  */
 const getScheduledTasks = tool({
   description: "List all tasks that have been scheduled",
   inputSchema: z.object({}),
   execute: async () => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
 
     try {
       const tasks = agent!.getSchedules();
@@ -88,8 +231,7 @@ const getScheduledTasks = tool({
 });
 
 /**
- * Tool to cancel a scheduled task by its ID
- * This executes automatically without requiring human confirmation
+ * Cancel a scheduled task by its ID
  */
 const cancelScheduledTask = tool({
   description: "Cancel a scheduled task using its ID",
@@ -97,7 +239,7 @@ const cancelScheduledTask = tool({
     taskId: z.string().describe("The ID of the task to cancel")
   }),
   execute: async ({ taskId }) => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent<PercifyAvatarAgent>();
     try {
       await agent!.cancelSchedule(taskId);
       return `Task ${taskId} has been successfully canceled.`;
@@ -108,22 +250,55 @@ const cancelScheduledTask = tool({
   }
 });
 
+// ============================================================================
+// WEATHER TOOL (Human-in-the-loop example from starter)
+// ============================================================================
+
 /**
- * Export all available tools
- * These will be provided to the AI model to describe available capabilities
+ * Weather information tool that requires human confirmation
+ */
+const getWeatherInformation = tool({
+  description: "Show the weather in a given city to the user",
+  inputSchema: z.object({ city: z.string() })
+  // No execute function = requires human confirmation
+});
+
+/**
+ * Local time tool
+ */
+const getLocalTime = tool({
+  description: "Get the local time for a specified location",
+  inputSchema: z.object({ location: z.string() }),
+  execute: async ({ location }) => {
+    console.log(`Getting local time for ${location}`);
+    return "10am";
+  }
+});
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+/**
+ * All available tools for the Percify Avatar Co-Pilot
  */
 export const tools = {
-  getWeatherInformation,
-  getLocalTime,
+  // Avatar tools (main features)
+  saveAvatarProfile,
+  saveMemory,
+  researchWeb,
+  getAvatarState,
+  // Scheduling tools
   scheduleTask,
   getScheduledTasks,
-  cancelScheduledTask
+  cancelScheduledTask,
+  // Utility tools
+  getWeatherInformation,
+  getLocalTime
 } satisfies ToolSet;
 
 /**
- * Implementation of confirmation-required tools
- * This object contains the actual logic for tools that need human approval
- * Each function here corresponds to a tool above that doesn't have an execute function
+ * Execution handlers for tools requiring human confirmation
  */
 export const executions = {
   getWeatherInformation: async ({ city }: { city: string }) => {
