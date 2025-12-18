@@ -277,11 +277,8 @@ ${this.buildContextString()}`;
     // @ts-expect-error - Model name is valid but not in type definitions yet
     const model = workersAI("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
 
-    // Collect all tools including MCP tools
-    const allTools = {
-      ...tools,
-      ...this.mcp.getAITools()
-    };
+    // Use our defined tools (MCP not used in this project)
+    const allTools = tools;
 
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
